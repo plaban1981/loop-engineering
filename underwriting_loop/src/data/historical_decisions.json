@@ -1,0 +1,142 @@
+{
+  "APP-001": {
+    "split": "train",
+    "expected_decision": "modify",
+    "expected_flags": [
+      "flood_rider_required",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-002": {
+    "split": "train",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "excess_claims",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-003": {
+    "split": "train",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "poor_credit"
+    ]
+  },
+  "APP-004": {
+    "split": "train",
+    "expected_decision": "refer",
+    "expected_flags": [
+      "high_coverage"
+    ]
+  },
+  "APP-005": {
+    "split": "train",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "excess_claims",
+      "flood_rider_required",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-006": {
+    "split": "train",
+    "expected_decision": "accept",
+    "expected_flags": []
+  },
+  "APP-007": {
+    "split": "train",
+    "expected_decision": "modify",
+    "expected_flags": [
+      "flood_rider_required",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-008": {
+    "split": "train",
+    "expected_decision": "accept",
+    "expected_flags": []
+  },
+  "APP-009": {
+    "split": "train",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "poor_credit"
+    ]
+  },
+  "APP-010": {
+    "split": "train",
+    "expected_decision": "refer",
+    "expected_flags": [
+      "high_coverage"
+    ]
+  },
+  "APP-011": {
+    "split": "train",
+    "expected_decision": "accept",
+    "expected_flags": [
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-012": {
+    "split": "train",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "excess_claims"
+    ]
+  },
+  "APP-013": {
+    "split": "train",
+    "expected_decision": "accept",
+    "expected_flags": []
+  },
+  "APP-014": {
+    "split": "train",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "poor_credit",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-015": {
+    "split": "train",
+    "expected_decision": "accept",
+    "expected_flags": [
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-016": {
+    "split": "train",
+    "expected_decision": "refer",
+    "expected_flags": [
+      "high_coverage"
+    ]
+  },
+  "APP-017": {
+    "split": "test",
+    "expected_decision": "decline",
+    "expected_flags": [
+      "excess_claims",
+      "flood_rider_required",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-018": {
+    "split": "test",
+    "expected_decision": "accept",
+    "expected_flags": []
+  },
+  "APP-019": {
+    "split": "test",
+    "expected_decision": "refer",
+    "expected_flags": [
+      "high_coverage",
+      "poor_credit",
+      "windstorm_exclusion"
+    ]
+  },
+  "APP-020": {
+    "split": "test",
+    "expected_decision": "accept",
+    "expected_flags": []
+  }
+}

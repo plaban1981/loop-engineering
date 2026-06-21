@@ -1,0 +1,90 @@
+{
+  "rules": [
+    {
+      "id": "RULE-001",
+      "category": "flood",
+      "keywords": [
+        "flood",
+        "flood_zone",
+        "flood_rider",
+        "water",
+        "inundation"
+      ],
+      "text": "Properties in a designated flood zone (flood_zone: true) require a flood rider endorsement. If has_flood_rider is false, decision must be 'modify' (require endorsement). Required flag: flood_rider_required."
+    },
+    {
+      "id": "RULE-002",
+      "category": "claims",
+      "keywords": [
+        "claims",
+        "claim_history",
+        "prior_claims",
+        "loss_history",
+        "losses"
+      ],
+      "text": "Applicants with more than 2 claims in the past 5 years (claim_history_5yr > 2) represent elevated loss risk. Decision must be 'decline' or 'refer' for senior review. Required flag: excess_claims."
+    },
+    {
+      "id": "RULE-003",
+      "category": "credit",
+      "keywords": [
+        "credit",
+        "credit_score",
+        "credit_tier",
+        "financial",
+        "fico"
+      ],
+      "text": "Applicants with a 'poor' credit score tier must receive a minimum 15% premium surcharge (recommended_premium_adj >= 0.15) or the policy must be declined. Required flag: poor_credit."
+    },
+    {
+      "id": "RULE-004",
+      "category": "coverage",
+      "keywords": [
+        "coverage",
+        "coverage_amount",
+        "high_value",
+        "large_policy",
+        "limit"
+      ],
+      "text": "Coverage amounts exceeding $1,000,000 require mandatory senior underwriter review. Decision must be 'refer'. Required flag: high_coverage."
+    },
+    {
+      "id": "RULE-005",
+      "category": "geography",
+      "keywords": [
+        "state",
+        "wind",
+        "windstorm",
+        "hurricane",
+        "FL",
+        "TX",
+        "Florida",
+        "Texas",
+        "geography"
+      ],
+      "text": "Properties in Florida (FL) or Texas (TX) are subject to windstorm exclusion by default. The exclusion must be documented regardless of other underwriting factors. Required flag: windstorm_exclusion."
+    },
+    {
+      "id": "RULE-006",
+      "category": "general",
+      "keywords": [
+        "accept",
+        "standard",
+        "general",
+        "baseline",
+        "criteria"
+      ],
+      "text": "Standard acceptance: applicant age 18-75, no active litigation, property in acceptable condition. All other rules supersede this baseline."
+    },
+    {
+      "id": "RULE-007",
+      "category": "business",
+      "keywords": [
+        "business",
+        "commercial",
+        "business_use"
+      ],
+      "text": "Properties with business use (business_use: true) require commercial underwriting classification. Additional documentation and review may be required."
+    }
+  ]
+}
