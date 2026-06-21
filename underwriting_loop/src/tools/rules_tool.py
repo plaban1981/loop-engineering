@@ -7,7 +7,7 @@ _DATA = Path(__file__).parent.parent / "data" / "rules_kb.json"
 
 @tool
 def retrieve_rules(risk_factor: str) -> list[str]:
-    """Return underwriting rules matching the given risk factor keyword."""
+    """Return underwriting rules matching the given risk factor keyword. Use terms like: flood, claims, credit, coverage, state, business."""
     kb = json.loads(_DATA.read_text())
     keyword = risk_factor.lower()
     matches = [
@@ -16,3 +16,4 @@ def retrieve_rules(risk_factor: str) -> list[str]:
         if any(kw.lower() in keyword or keyword in kw.lower() for kw in rule["keywords"])
     ]
     return matches if matches else ["No specific rules found for this risk factor."]
+

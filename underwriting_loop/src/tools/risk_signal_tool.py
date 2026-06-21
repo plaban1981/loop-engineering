@@ -9,9 +9,9 @@ def fetch_risk_signal(app_id: str, signal_type: str) -> dict:
     if signal_type == "credit":
         tier = app["credit_score_tier"]
         return {
-            "score": {"good": 720, "fair": 650, "poor": 575}[tier],
+            "score": {"good": 720, "fair": 650, "poor": 575}.get(tier, 600),
             "tier": tier,
-            "risk_label": {"good": "low", "fair": "medium", "poor": "high"}[tier],
+            "risk_label": {"good": "low", "fair": "medium", "poor": "high"}.get(tier, "unknown"),
         }
     if signal_type == "flood":
         return {
@@ -34,3 +34,4 @@ def fetch_risk_signal(app_id: str, signal_type: str) -> dict:
             "claim_types": (["water_damage"] * min(count, 2) + ["wind"] * max(0, count - 2)),
         }
     raise ValueError(f"Unknown signal type: {signal_type!r}. Use: credit|flood|property|claims")
+
