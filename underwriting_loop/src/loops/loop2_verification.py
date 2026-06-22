@@ -1,4 +1,4 @@
-# src/loops/loop2_verification.py
+﻿# src/loops/loop2_verification.py
 import json
 from pathlib import Path
 
@@ -20,6 +20,7 @@ def _write_human_queue(app_id: str, state: dict) -> None:
         "decision": state.get("decision"),
         "rationale": state.get("rationale"),
     })
+    HUMAN_QUEUE_PATH.parent.mkdir(parents=True, exist_ok=True)
     HUMAN_QUEUE_PATH.write_text(json.dumps(queue, indent=2))
 
 
