@@ -3,7 +3,7 @@ import json
 import time
 from pathlib import Path
 
-from ..billing.cost_meter import CostMeter
+from ..billing.cost_meter import BudgetExhaustedError, CostMeter
 from ..judge.audit import verify_judge_checksum
 from ..memory.lesson_memory import distill_lesson, with_lessons
 from .loop2_verification import run_loop2
@@ -66,15 +66,30 @@ def run_event_loop(
         lessons = run_state.get("lessons", [])
         prompt_with_lessons = with_lessons(system_prompt, lessons)
 
-        result_state, passed = run_loop2(app_id, prompt_with_lessons, meter)
+        try:
+            result_state, passed = run_loop2(app_id, prompt_with_lessons, meter)
+        except BudgetExhaustedError:
+            raise  # budget exhaustion should propagate — do not swallow
+        except Exception as exc:
+            print(f"[loop3] {app_id} errored: {exc!r} — skipping")
+            remaining = [x for x in pending if x != app_id]
+            pending_path.write_text(json.dumps(remaining))
+            continue
 
         lesson = None
         if not passed:
-            app = {}
+            from ..judge.judge import load_historical_decisions
+            from ..tools.application_tool import lookup_application
+            try:
+                app_data = lookup_application.invoke({"app_id": app_id})
+            except Exception:
+                app_data = {}
+            historical = load_historical_decisions()
+            expected_decision = historical.get(app_id, {}).get("expected_decision", "")
             lesson = distill_lesson(
-                application=app,
+                application=app_data,
                 got=result_state.get("decision", ""),
-                expected="",
+                expected=expected_decision,
             )
 
         run_state = update_state(run_state, app_id, passed, lesson)
