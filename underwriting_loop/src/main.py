@@ -41,7 +41,7 @@ def _init_run_state() -> dict:
 def cmd_single(args):
     meter = CostMeter()
     best_path = _STATE_DIR / "best_prompt.txt"
-    prompt = best_path.read_text().strip() if best_path.exists() else SEED_PROMPT
+    prompt = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
 
     print(f"Running single application: {args.app_id}")
     state = run_loop1(args.app_id, prompt, meter)
@@ -55,7 +55,7 @@ def cmd_event_loop(args):
     meter = CostMeter()
     _init_run_state()
     best_path = _STATE_DIR / "best_prompt.txt"
-    prompt = best_path.read_text().strip() if best_path.exists() else SEED_PROMPT
+    prompt = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
 
     run_event_loop(
         system_prompt=prompt,
@@ -71,11 +71,11 @@ def cmd_improve(args):
     lessons = run_state.get("lessons", [])
 
     best_path = _STATE_DIR / "best_prompt.txt"
-    seed = best_path.read_text().strip() if best_path.exists() else SEED_PROMPT
+    seed = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
 
     print(f"Starting hill-climbing ({args.rounds} rounds)...")
     best = improve(seed, lessons, meter, rounds=args.rounds)
-    best_path.write_text(best)
+    best_path.write_text(best, encoding="utf-8")
 
     print("\nEvaluating on test split...")
     seed_score, _ = evaluate_prompt(SEED_PROMPT, split="test", meter=meter)

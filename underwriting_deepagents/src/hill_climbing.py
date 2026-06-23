@@ -63,7 +63,7 @@ def improve(
 
         if score > best_score and verdict == "VERDICT: CLEAN":
             best, best_score, failures = candidate, score, cand_failures
-            BEST_PROMPT_PATH.write_text(best)
+            BEST_PROMPT_PATH.write_text(best, encoding="utf-8")
             print(f"round {r}: {score:.0%} KEPT  ({len(cand_failures)} failures)")
         else:
             reason = "cheating" if verdict != "VERDICT: CLEAN" else f"{score:.0%} <= {best_score:.0%}"

@@ -12,19 +12,33 @@ from .judge import evaluate
 
 _STATE_DIR = Path(__file__).parent.parent / "state"
 
+_DEFAULT_RUN_STATE = {
+    "processed": [], "passed": [], "failed": [], "pending": [],
+    "lessons": [], "decisions_since_last_improvement": 0, "judge_checksum": ""
+}
+
 
 def _init_run_state() -> dict:
     path = _STATE_DIR / "run_state.json"
-    state = json.loads(path.read_text()) if path.exists() else {}
+    state = {}
+    if path.exists():
+        try:
+            content = path.read_text(encoding="utf-8").strip()
+            if content:
+                state = json.loads(content)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            pass
+    if not state:
+        state = dict(_DEFAULT_RUN_STATE)
     state["judge_checksum"] = compute_judge_checksum()
-    path.write_text(json.dumps(state, indent=2))
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
     return state
 
 
 def cmd_single(args):
     meter = CostMeter()
     best_path = _STATE_DIR / "best_prompt.txt"
-    prompt = best_path.read_text().strip() if best_path.exists() else SEED_PROMPT
+    prompt = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
 
     from .tools.application_tool import lookup_application
     app_context = lookup_application.invoke({"app_id": args.app_id})
@@ -43,21 +57,20 @@ def cmd_event_loop(args):
     meter = CostMeter()
     _init_run_state()
     best_path = _STATE_DIR / "best_prompt.txt"
-    prompt = best_path.read_text().strip() if best_path.exists() else SEED_PROMPT
+    prompt = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
     run_event_loop(system_prompt=prompt, meter=meter, once=args.once)
     meter.print_receipt()
 
 
 def cmd_improve(args):
     meter = CostMeter()
-    _init_run_state()
-    run_state = json.loads((_STATE_DIR / "run_state.json").read_text())
+    run_state = _init_run_state()
     lessons = run_state.get("lessons", [])
     best_path = _STATE_DIR / "best_prompt.txt"
-    seed = best_path.read_text().strip() if best_path.exists() else SEED_PROMPT
+    seed = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
 
     best = improve(build_verified_agent, seed, lessons, meter, rounds=args.rounds)
-    best_path.write_text(best)
+    best_path.write_text(best, encoding="utf-8")
 
     print("\nFinal test evaluation...")
     seed_score, _ = evaluate(build_verified_agent, SEED_PROMPT, split="test", meter=meter)

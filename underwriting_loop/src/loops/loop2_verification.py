@@ -14,14 +14,14 @@ HUMAN_QUEUE_PATH = Path(__file__).parent.parent.parent / "state" / "human_queue.
 def _write_human_queue(app_id: str, state: dict) -> None:
     queue = []
     if HUMAN_QUEUE_PATH.exists():
-        queue = json.loads(HUMAN_QUEUE_PATH.read_text())
+        queue = json.loads(HUMAN_QUEUE_PATH.read_text(encoding="utf-8"))
     queue.append({
         "app_id": app_id,
         "decision": state.get("decision"),
         "rationale": state.get("rationale"),
     })
     HUMAN_QUEUE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    HUMAN_QUEUE_PATH.write_text(json.dumps(queue, indent=2))
+    HUMAN_QUEUE_PATH.write_text(json.dumps(queue, indent=2), encoding="utf-8")
 
 
 def run_loop2(

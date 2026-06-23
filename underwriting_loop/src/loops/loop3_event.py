@@ -16,11 +16,11 @@ POLL_INTERVAL = 10
 
 
 def load_run_state(path: Path) -> dict:
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def save_run_state(state: dict, path: Path) -> None:
-    path.write_text(json.dumps(state, indent=2))
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 def update_state(state: dict, app_id: str, passed: bool, lesson: str | None) -> dict:
@@ -53,7 +53,7 @@ def run_event_loop(
     verify_judge_checksum(run_state.get("judge_checksum", ""))
 
     while True:
-        pending = json.loads(pending_path.read_text()) if pending_path.exists() else []
+        pending = json.loads(pending_path.read_text(encoding="utf-8")) if pending_path.exists() else []
 
         if not pending:
             if once:
@@ -73,7 +73,7 @@ def run_event_loop(
         except Exception as exc:
             print(f"[loop3] {app_id} errored: {exc!r} — skipping")
             remaining = [x for x in pending if x != app_id]
-            pending_path.write_text(json.dumps(remaining))
+            pending_path.write_text(json.dumps(remaining), encoding="utf-8")
             continue
 
         lesson = None

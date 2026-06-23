@@ -41,11 +41,11 @@ def run_event_loop(
     state_path: Path = DEFAULT_STATE,
     once: bool = False,
 ) -> None:
-    run_state = json.loads(state_path.read_text())
+    run_state = json.loads(state_path.read_text(encoding="utf-8"))
     verify_judge_checksum(run_state.get("judge_checksum", ""))
 
     while True:
-        pending = json.loads(pending_path.read_text()) if pending_path.exists() else []
+        pending = json.loads(pending_path.read_text(encoding="utf-8")) if pending_path.exists() else []
 
         if not pending:
             if once:
@@ -72,9 +72,9 @@ def run_event_loop(
         decision = result.get("decision") or _extract_decision(result)
 
         if decision == "refer":
-            queue = json.loads(HUMAN_QUEUE_PATH.read_text()) if HUMAN_QUEUE_PATH.exists() else []
+            queue = json.loads(HUMAN_QUEUE_PATH.read_text(encoding="utf-8")) if HUMAN_QUEUE_PATH.exists() else []
             queue.append({"app_id": app_id, "result": result})
-            HUMAN_QUEUE_PATH.write_text(json.dumps(queue, indent=2))
+            HUMAN_QUEUE_PATH.write_text(json.dumps(queue, indent=2), encoding="utf-8")
             passed = True
         else:
             passed = is_correct(decision, app_id)
@@ -84,10 +84,10 @@ def run_event_loop(
             lesson = distill_lesson(app_context, got=decision, expected="")
 
         run_state = update_state(run_state, app_id, passed, lesson)
-        state_path.write_text(json.dumps(run_state, indent=2))
+        state_path.write_text(json.dumps(run_state, indent=2), encoding="utf-8")
 
         remaining = [x for x in pending if x != app_id]
-        pending_path.write_text(json.dumps(remaining))
+        pending_path.write_text(json.dumps(remaining), encoding="utf-8")
 
         if run_state["decisions_since_last_improvement"] >= HILL_CLIMB_EVERY:
             system_prompt = run_hill_climbing(build_verified_agent, system_prompt, lessons, meter)
