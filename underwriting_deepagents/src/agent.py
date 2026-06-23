@@ -29,7 +29,7 @@ TOOLS = [lookup_application, retrieve_rules, fetch_risk_signal, draft_decision]
 
 def build_agent(system_prompt: str, meter: CostMeter):
     model = ChatAnthropic(model="claude-sonnet-4-6")
-    return create_react_agent(model=model, tools=TOOLS, state_modifier=system_prompt)
+    return create_react_agent(model=model, tools=TOOLS, prompt=system_prompt)
 
 
 def build_verified_agent(system_prompt: str, meter: CostMeter) -> RubricMiddleware:
