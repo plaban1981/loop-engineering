@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .agent import SEED_PROMPT, build_verified_agent
 from .audit import compute_judge_checksum
-from .billing import CostMeter
+from .billing import BudgetExhaustedError, CostMeter
 from .event_loop import run_event_loop
 from .hill_climbing import improve
 from .judge import evaluate
@@ -69,13 +69,22 @@ def cmd_improve(args):
     best_path = _STATE_DIR / "best_prompt.txt"
     seed = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else SEED_PROMPT
 
-    best = improve(build_verified_agent, seed, lessons, meter, rounds=args.rounds)
+    try:
+        best = improve(build_verified_agent, seed, lessons, meter, rounds=args.rounds)
+    except BudgetExhaustedError as exc:
+        print(f"\nhill-climbing stopped — {exc}")
+        # improve() writes best_prompt.txt whenever a round is kept; re-read it
+        best = best_path.read_text(encoding="utf-8").strip() if best_path.exists() else seed
     best_path.write_text(best, encoding="utf-8")
 
     print("\nFinal test evaluation...")
-    seed_score, _ = evaluate(build_verified_agent, SEED_PROMPT, split="test", meter=meter)
-    final_score, _ = evaluate(build_verified_agent, best, split="test", meter=meter)
-    meter.print_receipt(test_score=final_score, seed_test_score=seed_score)
+    try:
+        seed_score, _ = evaluate(build_verified_agent, SEED_PROMPT, split="test", meter=meter)
+        final_score, _ = evaluate(build_verified_agent, best, split="test", meter=meter)
+        meter.print_receipt(test_score=final_score, seed_test_score=seed_score)
+    except BudgetExhaustedError as exc:
+        print(f"(test evaluation skipped — budget exhausted: {exc})")
+        meter.print_receipt()
 
 
 def main():
