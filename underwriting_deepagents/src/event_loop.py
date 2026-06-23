@@ -41,19 +41,26 @@ def run_event_loop(
     state_path: Path = DEFAULT_STATE,
     once: bool = False,
 ) -> None:
-    run_state = json.loads(state_path.read_text(encoding="utf-8"))
+    run_state = json.loads(state_path.read_text(encoding="utf-8-sig"))
     verify_judge_checksum(run_state.get("judge_checksum", ""))
 
+    total = len(json.loads(pending_path.read_text(encoding="utf-8-sig")) if pending_path.exists() else [])
+    processed = 0
+
     while True:
-        pending = json.loads(pending_path.read_text(encoding="utf-8")) if pending_path.exists() else []
+        pending = json.loads(pending_path.read_text(encoding="utf-8-sig")) if pending_path.exists() else []
 
         if not pending:
             if once:
+                print("[event_loop] queue empty — done")
                 break
+            print("[event_loop] queue empty — sleeping...")
             time.sleep(POLL_INTERVAL)
             continue
 
         app_id = pending[0]
+        processed += 1
+        print(f"[event_loop] {processed}/{total}  {app_id} ...", flush=True)
         lessons = run_state.get("lessons", [])
         prompt = with_lessons(system_prompt, lessons)
 
@@ -72,16 +79,21 @@ def run_event_loop(
         decision = result.get("decision") or _extract_decision(result)
 
         if decision == "refer":
-            queue = json.loads(HUMAN_QUEUE_PATH.read_text(encoding="utf-8")) if HUMAN_QUEUE_PATH.exists() else []
+            queue = json.loads(HUMAN_QUEUE_PATH.read_text(encoding="utf-8-sig")) if HUMAN_QUEUE_PATH.exists() else []
             queue.append({"app_id": app_id, "result": result})
             HUMAN_QUEUE_PATH.write_text(json.dumps(queue, indent=2), encoding="utf-8")
             passed = True
         else:
             passed = is_correct(decision, app_id)
 
+        status = "PASS" if passed else "FAIL"
+        spend = f"${meter.spent:.4f}"
+        print(f"[event_loop] {app_id}  decision={decision}  {status}  spend={spend}")
+
         lesson = None
         if not passed:
             lesson = distill_lesson(app_context, got=decision, expected="")
+            print(f"[event_loop] {app_id}  lesson distilled")
 
         run_state = update_state(run_state, app_id, passed, lesson)
         state_path.write_text(json.dumps(run_state, indent=2), encoding="utf-8")
@@ -90,9 +102,11 @@ def run_event_loop(
         pending_path.write_text(json.dumps(remaining), encoding="utf-8")
 
         if run_state["decisions_since_last_improvement"] >= HILL_CLIMB_EVERY:
+            print(f"[event_loop] {HILL_CLIMB_EVERY} decisions reached — running hill-climbing...")
             system_prompt = run_hill_climbing(build_verified_agent, system_prompt, lessons, meter)
             run_state["decisions_since_last_improvement"] = 0
-            state_path.write_text(json.dumps(run_state, indent=2))
+            state_path.write_text(json.dumps(run_state, indent=2), encoding="utf-8")
+            print(f"[event_loop] hill-climbing done  spend={spend}")
 
         if once and not remaining:
             break

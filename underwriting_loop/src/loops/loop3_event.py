@@ -16,7 +16,7 @@ POLL_INTERVAL = 10
 
 
 def load_run_state(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def save_run_state(state: dict, path: Path) -> None:
@@ -52,17 +52,23 @@ def run_event_loop(
     run_state = load_run_state(state_path)
     verify_judge_checksum(run_state.get("judge_checksum", ""))
 
+    total = len(json.loads(pending_path.read_text(encoding="utf-8-sig")) if pending_path.exists() else [])
+    processed = 0
+
     while True:
-        pending = json.loads(pending_path.read_text(encoding="utf-8")) if pending_path.exists() else []
+        pending = json.loads(pending_path.read_text(encoding="utf-8-sig")) if pending_path.exists() else []
 
         if not pending:
             if once:
+                print("[loop3] queue empty — done")
                 break
-            print("Queue empty. Sleeping...")
+            print("[loop3] queue empty — sleeping...")
             time.sleep(POLL_INTERVAL)
             continue
 
         app_id = pending[0]
+        processed += 1
+        print(f"[loop3] {processed}/{total}  {app_id} ...", flush=True)
         lessons = run_state.get("lessons", [])
         prompt_with_lessons = with_lessons(system_prompt, lessons)
 
@@ -71,10 +77,15 @@ def run_event_loop(
         except BudgetExhaustedError:
             raise  # budget exhaustion should propagate — do not swallow
         except Exception as exc:
-            print(f"[loop3] {app_id} errored: {exc!r} — skipping")
+            print(f"[loop3] {app_id} ERROR: {exc!r} — skipping")
             remaining = [x for x in pending if x != app_id]
             pending_path.write_text(json.dumps(remaining), encoding="utf-8")
             continue
+
+        decision = result_state.get("decision", "?")
+        status = "PASS" if passed else "FAIL"
+        spend = f"${meter.spent:.4f}"
+        print(f"[loop3] {app_id}  decision={decision}  {status}  spend={spend}")
 
         lesson = None
         if not passed:
@@ -91,17 +102,20 @@ def run_event_loop(
                 got=result_state.get("decision", ""),
                 expected=expected_decision,
             )
+            print(f"[loop3] {app_id}  expected={expected_decision}  lesson distilled")
 
         run_state = update_state(run_state, app_id, passed, lesson)
         save_run_state(run_state, state_path)
 
         remaining = [x for x in pending if x != app_id]
-        pending_path.write_text(json.dumps(remaining))
+        pending_path.write_text(json.dumps(remaining), encoding="utf-8")
 
         if run_state["decisions_since_last_improvement"] >= HILL_CLIMB_EVERY:
+            print(f"[loop3] {HILL_CLIMB_EVERY} decisions reached — running hill-climbing...")
             system_prompt = run_hill_climbing(system_prompt, lessons, meter)
             run_state["decisions_since_last_improvement"] = 0
             save_run_state(run_state, state_path)
+            print(f"[loop3] hill-climbing done  spend={spend}")
 
         if once and not remaining:
             break

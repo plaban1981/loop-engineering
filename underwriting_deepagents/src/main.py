@@ -23,7 +23,7 @@ def _init_run_state() -> dict:
     state = {}
     if path.exists():
         try:
-            content = path.read_text(encoding="utf-8").strip()
+            content = path.read_text(encoding="utf-8-sig").strip()
             if content:
                 state = json.loads(content)
         except (json.JSONDecodeError, UnicodeDecodeError):
