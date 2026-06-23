@@ -5,7 +5,7 @@ from typing import Callable
 
 from .agent import build_verified_agent
 from .audit import verify_judge_checksum
-from .billing import CostMeter
+from .billing import BudgetExhaustedError, CostMeter
 from .judge import _extract_decision, is_correct
 from .memory import distill_lesson, with_lessons
 
@@ -103,10 +103,15 @@ def run_event_loop(
 
         if run_state["decisions_since_last_improvement"] >= HILL_CLIMB_EVERY:
             print(f"[event_loop] {HILL_CLIMB_EVERY} decisions reached — running hill-climbing...")
-            system_prompt = run_hill_climbing(build_verified_agent, system_prompt, lessons, meter)
-            run_state["decisions_since_last_improvement"] = 0
-            state_path.write_text(json.dumps(run_state, indent=2), encoding="utf-8")
-            print(f"[event_loop] hill-climbing done  spend={spend}")
+            try:
+                system_prompt = run_hill_climbing(build_verified_agent, system_prompt, lessons, meter)
+                run_state["decisions_since_last_improvement"] = 0
+                state_path.write_text(json.dumps(run_state, indent=2), encoding="utf-8")
+                print(f"[event_loop] hill-climbing done  spend=${meter.spent:.4f}")
+            except BudgetExhaustedError:
+                print(f"[event_loop] hill-climbing skipped — budget exhausted at ${meter.spent:.4f}")
+                run_state["decisions_since_last_improvement"] = 0
+                state_path.write_text(json.dumps(run_state, indent=2), encoding="utf-8")
 
         if once and not remaining:
             break

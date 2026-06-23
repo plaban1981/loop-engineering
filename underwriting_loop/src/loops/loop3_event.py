@@ -112,10 +112,15 @@ def run_event_loop(
 
         if run_state["decisions_since_last_improvement"] >= HILL_CLIMB_EVERY:
             print(f"[loop3] {HILL_CLIMB_EVERY} decisions reached — running hill-climbing...")
-            system_prompt = run_hill_climbing(system_prompt, lessons, meter)
-            run_state["decisions_since_last_improvement"] = 0
-            save_run_state(run_state, state_path)
-            print(f"[loop3] hill-climbing done  spend={spend}")
+            try:
+                system_prompt = run_hill_climbing(system_prompt, lessons, meter)
+                run_state["decisions_since_last_improvement"] = 0
+                save_run_state(run_state, state_path)
+                print(f"[loop3] hill-climbing done  spend=${meter.spent:.4f}")
+            except BudgetExhaustedError:
+                print(f"[loop3] hill-climbing skipped — budget exhausted at ${meter.spent:.4f}")
+                run_state["decisions_since_last_improvement"] = 0
+                save_run_state(run_state, state_path)
 
         if once and not remaining:
             break
