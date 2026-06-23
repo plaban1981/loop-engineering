@@ -26,7 +26,7 @@ def test_reflect_calls_claude_and_returns_string():
     assert result == fake_prompt
 
 
-def test_improve_keeps_better_prompt():
+def test_improve_keeps_better_prompt(tmp_path):
     call_count = {"n": 0}
 
     def fake_eval(prompt, split="train", meter=None):
@@ -42,7 +42,8 @@ def test_improve_keeps_better_prompt():
     with patch("src.loops.loop4_hill_climbing.evaluate_prompt", fake_eval):
         with patch("src.loops.loop4_hill_climbing.reflect", fake_reflect):
             with patch("src.loops.loop4_hill_climbing.audit_prompt", return_value="VERDICT: CLEAN"):
-                result = improve("seed", [], None, rounds=2)
+                with patch("src.loops.loop4_hill_climbing.BEST_PROMPT_PATH", tmp_path / "best_prompt.txt"):
+                    result = improve("seed", [], None, rounds=2)
 
     assert result == "improved prompt"
 

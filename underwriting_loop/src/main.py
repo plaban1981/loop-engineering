@@ -15,14 +15,26 @@ from .memory.lesson_memory import with_lessons
 _STATE_DIR = Path(__file__).parent.parent / "state"
 
 
+_DEFAULT_RUN_STATE = {
+    "processed": [], "passed": [], "failed": [], "pending": [],
+    "lessons": [], "decisions_since_last_improvement": 0, "judge_checksum": ""
+}
+
+
 def _init_run_state() -> dict:
     path = _STATE_DIR / "run_state.json"
-    state = json.loads(path.read_text()) if path.exists() else {
-        "processed": [], "passed": [], "failed": [], "pending": [],
-        "lessons": [], "decisions_since_last_improvement": 0, "judge_checksum": ""
-    }
+    state = {}
+    if path.exists():
+        try:
+            content = path.read_text(encoding="utf-8").strip()
+            if content:
+                state = json.loads(content)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            pass
+    if not state:
+        state = dict(_DEFAULT_RUN_STATE)
     state["judge_checksum"] = compute_judge_checksum()
-    path.write_text(json.dumps(state, indent=2))
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
     return state
 
 

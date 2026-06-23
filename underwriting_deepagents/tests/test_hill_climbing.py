@@ -8,7 +8,7 @@ from src.hill_climbing import reflect, improve
 from src.agent import build_verified_agent
 
 
-def test_improve_keeps_better():
+def test_improve_keeps_better(tmp_path):
     call_count = {"n": 0}
 
     def fake_eval(factory, prompt, split="train", meter=None):
@@ -24,7 +24,8 @@ def test_improve_keeps_better():
     with patch("src.hill_climbing.evaluate", fake_eval):
         with patch("src.hill_climbing.reflect", fake_reflect):
             with patch("src.hill_climbing.audit_prompt", return_value="VERDICT: CLEAN"):
-                result = improve(build_verified_agent, "seed", [], None, rounds=2)
+                with patch("src.hill_climbing.BEST_PROMPT_PATH", tmp_path / "best_prompt.txt"):
+                    result = improve(build_verified_agent, "seed", [], None, rounds=2)
 
     assert result == "improved prompt"
 
