@@ -1,4 +1,6 @@
 from langchain_anthropic import ChatAnthropic
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.outputs import LLMResult
 from langgraph.prebuilt import create_react_agent
 
 from .billing import CostMeter
@@ -27,8 +29,27 @@ Always call draft_decision as your final action. Include all applicable flags.""
 TOOLS = [lookup_application, retrieve_rules, fetch_risk_signal, draft_decision]
 
 
+class _MeterCallback(BaseCallbackHandler):
+    """Records Anthropic token usage into a CostMeter after each LLM call."""
+
+    def __init__(self, meter: CostMeter):
+        self._meter = meter
+
+    def on_llm_end(self, response: LLMResult, **kwargs) -> None:
+        for gen_list in response.generations:
+            for gen in gen_list:
+                msg = getattr(gen, "message", None)
+                usage = getattr(msg, "usage_metadata", None)
+                if usage:
+                    self._meter.record(
+                        input_tokens=usage.get("input_tokens", 0),
+                        output_tokens=usage.get("output_tokens", 0),
+                    )
+                    return
+
+
 def build_agent(system_prompt: str, meter: CostMeter):
-    model = ChatAnthropic(model="claude-sonnet-4-6")
+    model = ChatAnthropic(model="claude-sonnet-4-6", callbacks=[_MeterCallback(meter)])
     return create_react_agent(model=model, tools=TOOLS, prompt=system_prompt)
 
 
