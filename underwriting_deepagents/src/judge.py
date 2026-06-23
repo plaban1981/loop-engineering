@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -65,7 +66,17 @@ def evaluate(
         if meter:
             meter.check()  # raises BudgetExhaustedError before building a new agent
         agent = agent_factory(system_prompt, meter)
-        result = agent.invoke({"input": f"Evaluate insurance application {task['id']}. Use all available tools and call draft_decision with your final decision."})
+        for _attempt in range(3):
+            try:
+                result = agent.invoke({"input": f"Evaluate insurance application {task['id']}. Use all available tools and call draft_decision with your final decision."})
+                break
+            except Exception as exc:
+                if "overloaded" in str(exc).lower() and _attempt < 2:
+                    wait = 30 * (2 ** _attempt)
+                    print(f"[judge] API overloaded — retrying in {wait}s...", flush=True)
+                    time.sleep(wait)
+                else:
+                    raise
         decision = _extract_decision(result)
         if not is_correct(decision, task["id"]):
             failures.append({
