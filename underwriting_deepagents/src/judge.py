@@ -34,8 +34,15 @@ def is_correct(agent_decision: str, app_id: str) -> bool:
 
 
 def _extract_decision(result: dict | str) -> str:
-    """Extract decision string from agent output (dict with 'output' key or raw string)."""
-    text = result.get("output", "") if isinstance(result, dict) else str(result)
+    """Extract decision string from agent output."""
+    if isinstance(result, dict):
+        # RubricMiddleware returns a parsed dict with decision directly
+        decision = result.get("decision", "")
+        if decision in {"accept", "modify", "decline", "refer"}:
+            return decision
+        text = result.get("output", str(result))
+    else:
+        text = str(result)
     for word in ["accept", "modify", "decline", "refer"]:
         if f"decision: {word}" in text.lower() or f'"decision": "{word}"' in text.lower():
             return word

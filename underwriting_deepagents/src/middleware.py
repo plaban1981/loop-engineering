@@ -77,15 +77,37 @@ def check_rubric(output: dict, rubric: dict, app: dict = None) -> list[str]:
 
 def _parse_output(raw_output: Any) -> dict:
     """Extract decision fields from agent output."""
+    import ast
+
     if isinstance(raw_output, dict):
-        # Check if it already has decision field directly
+        # Already a parsed decision dict
         if "decision" in raw_output and raw_output.get("decision") in {"accept", "modify", "decline", "refer"}:
             return raw_output
-        text = raw_output.get("output", str(raw_output))
+
+        # create_react_agent returns {"messages": [...]} — find draft_decision ToolMessage
+        if "messages" in raw_output:
+            for msg in reversed(raw_output["messages"]):
+                if getattr(msg, "name", None) == "draft_decision":
+                    content = msg.content if isinstance(msg.content, str) else str(msg.content)
+                    for parser in (json.loads, ast.literal_eval):
+                        try:
+                            parsed = parser(content)
+                            if isinstance(parsed, dict) and "decision" in parsed:
+                                return parsed
+                        except (json.JSONDecodeError, ValueError, SyntaxError):
+                            pass
+            # No draft_decision tool message — concatenate all content for keyword scan
+            text = " ".join(
+                msg.content if isinstance(msg.content, str) else str(msg.content)
+                for msg in raw_output["messages"]
+                if hasattr(msg, "content")
+            )
+        else:
+            text = raw_output.get("output", str(raw_output))
     else:
         text = str(raw_output)
 
-    # Try JSON extraction
+    # Try JSON extraction from text
     match = re.search(r'\{[^{}]*"decision"[^{}]*\}', text, re.DOTALL)
     if match:
         try:
@@ -93,7 +115,7 @@ def _parse_output(raw_output: Any) -> dict:
         except json.JSONDecodeError:
             pass
 
-    # Fallback: keyword scan
+    # Keyword scan fallback
     decision = "ran_out_of_steps"
     for word in ["decline", "refer", "modify", "accept"]:
         if word in text.lower():
@@ -118,11 +140,16 @@ class RubricMiddleware:
         self._max_retries = max_retries
 
     def invoke(self, inputs: dict) -> dict:
+        from langchain_core.messages import HumanMessage
+
         app_context = inputs.get("_app_context", {})
-        current_inputs = dict(inputs)
+        human_text = inputs.get("input", "")
+
+        # create_react_agent expects {"messages": [...]}, not {"input": "..."}
+        agent_inputs = {"messages": [HumanMessage(content=human_text)]}
 
         for attempt in range(self._max_retries + 1):
-            raw = self._agent.invoke(current_inputs)
+            raw = self._agent.invoke(agent_inputs)
             parsed = _parse_output(raw)
             violations = check_rubric(parsed, self._rubric, app_context)
 
@@ -131,13 +158,14 @@ class RubricMiddleware:
                 parsed["_attempts"] = attempt + 1
                 return parsed
 
-            # Inject feedback for retry
+            # Carry full conversation + add targeted feedback for retry
             violation_text = "\n".join(f"- {v}" for v in violations)
             feedback = (
-                f"\nYour previous response violated the underwriting rubric:\n{violation_text}\n"
+                f"Your previous response violated the underwriting rubric:\n{violation_text}\n"
                 f"Please review the application and call draft_decision again with corrections."
             )
-            current_inputs = {**inputs, "input": inputs["input"] + feedback}
+            existing_messages = raw.get("messages", []) if isinstance(raw, dict) else []
+            agent_inputs = {"messages": list(existing_messages) + [HumanMessage(content=feedback)]}
 
         parsed["_rubric_violations"] = violations
         parsed["_attempts"] = self._max_retries + 1
