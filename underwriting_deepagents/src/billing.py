@@ -17,6 +17,11 @@ class CostMeter:
             raise BudgetExhaustedError(f"Budget ${self._budget:.2f} exhausted at ${self.spent:.4f}")
         self.spent += input_tokens * INPUT_PRICE_PER_TOKEN + output_tokens * OUTPUT_PRICE_PER_TOKEN
 
+    def check(self) -> None:
+        """Raise BudgetExhaustedError if the budget is already exhausted. Call before each agent.invoke()."""
+        if self.spent >= self._budget:
+            raise BudgetExhaustedError(f"Budget ${self._budget:.2f} exhausted at ${self.spent:.4f}")
+
     def record_from_message(self, msg) -> None:
         if getattr(msg, "usage_metadata", None):
             self.record(

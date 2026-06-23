@@ -3,7 +3,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
 from langgraph.prebuilt import create_react_agent
 
-from .billing import CostMeter
+from .billing import BudgetExhaustedError, CostMeter
 from .middleware import RubricMiddleware, UNDERWRITING_RUBRIC
 from .tools.application_tool import lookup_application
 from .tools.decision_tool import draft_decision
@@ -41,10 +41,13 @@ class _MeterCallback(BaseCallbackHandler):
                 msg = getattr(gen, "message", None)
                 usage = getattr(msg, "usage_metadata", None)
                 if usage:
-                    self._meter.record(
-                        input_tokens=usage.get("input_tokens", 0),
-                        output_tokens=usage.get("output_tokens", 0),
-                    )
+                    try:
+                        self._meter.record(
+                            input_tokens=usage.get("input_tokens", 0),
+                            output_tokens=usage.get("output_tokens", 0),
+                        )
+                    except BudgetExhaustedError:
+                        pass  # LangChain swallows callback exceptions anyway; caller checks meter.check()
                     return
 
 
@@ -55,4 +58,4 @@ def build_agent(system_prompt: str, meter: CostMeter):
 
 def build_verified_agent(system_prompt: str, meter: CostMeter) -> RubricMiddleware:
     agent = build_agent(system_prompt, meter)
-    return RubricMiddleware(agent, rubric=UNDERWRITING_RUBRIC, max_retries=3)
+    return RubricMiddleware(agent, rubric=UNDERWRITING_RUBRIC, max_retries=3, meter=meter)

@@ -134,10 +134,11 @@ def _parse_output(raw_output: Any) -> dict:
 class RubricMiddleware:
     """Wraps a LangChain Runnable. On each invoke, checks rubric and retries up to max_retries."""
 
-    def __init__(self, agent, rubric: dict, max_retries: int = 3):
+    def __init__(self, agent, rubric: dict, max_retries: int = 3, meter=None):
         self._agent = agent
         self._rubric = rubric
         self._max_retries = max_retries
+        self._meter = meter
 
     def invoke(self, inputs: dict) -> dict:
         from langchain_core.messages import HumanMessage
@@ -149,6 +150,8 @@ class RubricMiddleware:
         agent_inputs = {"messages": [HumanMessage(content=human_text)]}
 
         for attempt in range(self._max_retries + 1):
+            if self._meter:
+                self._meter.check()  # raises BudgetExhaustedError before starting a new LLM call
             raw = self._agent.invoke(agent_inputs)
             parsed = _parse_output(raw)
             violations = check_rubric(parsed, self._rubric, app_context)

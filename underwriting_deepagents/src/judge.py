@@ -62,6 +62,8 @@ def evaluate(
     tasks = load_tasks(split)
     failures = []
     for task in tasks:
+        if meter:
+            meter.check()  # raises BudgetExhaustedError before building a new agent
         agent = agent_factory(system_prompt, meter)
         result = agent.invoke({"input": f"Evaluate insurance application {task['id']}. Use all available tools and call draft_decision with your final decision."})
         decision = _extract_decision(result)
